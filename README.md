@@ -60,6 +60,14 @@ Note that this is a too experimental implmentation and there are some limitation
 
 * See also [an example repository](https://github.com/45deg/Actoverse-Scala-Demos) and limitations.
 
+## How it works
+
+### Archtecture
+
+- `DebuggingSystem` control all actors. It commits a command issued by `WebSocketHandler` to actors and reports their states to the handler.
+- `WebSocketHandler` performs a mediator between the target system and the debugger UI. To communicate with it, this server parse JSON strings converts Scala object to the JSON format. 
+- Incoming/outgoing messages are trapped by `DebuggingSupporter`, which is a "parasite" on actors.
+
 ## Limitations
 
 The implementation does not cover some functions of Akka and Scala, such as:

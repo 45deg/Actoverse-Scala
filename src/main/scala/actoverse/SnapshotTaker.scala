@@ -2,7 +2,6 @@ package actoverse
 
 import scala.reflect.runtime.universe._
 
-case class State() extends scala.annotation.StaticAnnotation
 trait SnapShotTaker {
   import scala.collection._
   private var stateSnapshots = mutable.Map[Long, immutable.Map[TermSymbol, Any]]()

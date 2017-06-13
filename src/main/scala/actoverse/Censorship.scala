@@ -38,7 +38,7 @@ case class TargetCensorship(name: String) extends Censorship {
 
 case class PartialMatch(jsonAst: JValue) extends Censorship {
   def check(sender: ActorPath, target: ActorPath, data: Any): Boolean = {
-    implicit val formats = DefaultFormats
+    implicit val formats = DefaultFormats + new ComprehensiveSerializer
     val Diff(changed, added, _) = Extraction.decompose(data) diff jsonAst
     changed == JNothing && added == JNothing
   }
@@ -46,7 +46,7 @@ case class PartialMatch(jsonAst: JValue) extends Censorship {
 
 case class PerfectMatch(jsonAst: JValue) extends Censorship {
   def check(sender: ActorPath, target: ActorPath, data: Any): Boolean = {
-    implicit val formats = DefaultFormats
+    implicit val formats = DefaultFormats + new ComprehensiveSerializer
     val Diff(changed, added, deleted) = Extraction.decompose(data) diff jsonAst
     changed == JNothing && added == JNothing && deleted == JNothing
   }

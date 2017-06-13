@@ -12,7 +12,7 @@ object ResponseProtocol {
     val path: ActorPath
     def toJsonAst()(implicit formats: Formats): JsonAST.JValue
     def toJson(): String = {
-      implicit val formats = DefaultFormats
+      implicit val formats = DefaultFormats + new ComprehensiveSerializer
       compact(render(toJsonAst()))
     }
   }

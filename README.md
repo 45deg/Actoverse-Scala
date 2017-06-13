@@ -62,11 +62,23 @@ Note that this is a too experimental implmentation and there are some limitation
 
 ## How it works
 
-### Archtecture
+### Architecture
+
+![arch](https://user-images.githubusercontent.com/7984294/27071388-b75ee24e-5057-11e7-898a-00e2fcb4abc9.png)
 
 - `DebuggingSystem` control all actors. It commits a command issued by `WebSocketHandler` to actors and reports their states to the handler.
 - `WebSocketHandler` performs a mediator between the target system and the debugger UI. To communicate with it, this server parse JSON strings converts Scala object to the JSON format. 
 - Incoming/outgoing messages are trapped by `DebuggingSupporter`, which is a "parasite" on actors.
+
+### Message Enveloping
+
+All the messages sent by actors with `!+` are attached an additional information (internally, called `Envelope`) that includes sender and receiver's Actor pathes, Lamport timestamps, and auto-generated UUID.
+
+In contrast, the `DebuggingSupporter` of an receiving actor open an envelope and deliver the original message in it to the actor. The idea of interception comes from [Receive Pipeline Pattern](http://doc.akka.io/docs/akka/2.4-M1/contrib/receive-pipeline.html)
+
+The figure below provides an overview of processing incoming messages (envelopes).
+
+![flowchart](https://user-images.githubusercontent.com/7984294/27072620-f2eef85e-505b-11e7-8d5e-c0a143a13bdb.png)
 
 ## Limitations
 

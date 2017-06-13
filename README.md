@@ -57,6 +57,7 @@ Note that this is a too experimental implmentation and there are some limitation
 		val debuggingSystem = new DebuggingSystem // <= Added
 		debuggingSystem.introduce(system) // <= Added
 		```
+* Adding an annotation `@Comprehensive` to a class (such as one used as a message) make the class name of it shown on the debugger. (ex. Foo(a=1, b=2): `{a:1,b:2}` => `["Foo",{a:1,b:2}]`)
 
 * See also [an example repository](https://github.com/45deg/Actoverse-Scala-Demos) and limitations.
 
@@ -83,7 +84,7 @@ The figure below provides an overview of processing incoming messages (envelopes
 ### Snapshot
 
 DebuggingSystem store the state (variables) of the actor every time when an actor finishes processing an incoming message, that is, finishes `receive`. Currently, developers must specify the variables that should be captured by
-adding `@State` to them. 
+adding `@State` to them.
 
 ## Limitations
 

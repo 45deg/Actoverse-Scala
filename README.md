@@ -2,7 +2,7 @@
 
 Actoverse API implementation for Scala
 
-This library extends the [Akka Actor](http://akka.io/) system to realize captureing causal relationships and reverse debugging. 
+This library extends the [Akka Actor](http://akka.io/) system to realize captureing causal relationships and reverse debugging.
 Note that this is a too experimental implmentation and there are some limitations about the system to perform them.
 
 ## Usage
@@ -17,33 +17,33 @@ Note that this is a too experimental implmentation and there are some limitation
 	```
 
 * Add the settings of the WebSocket handler to `applications.conf` of your project.
-	
+
 	```
 	actoverse.wshandler.hostname = "localhost"
 	actoverse.wshandler.port = 3000
 	```
 
 * Modify your Akka code like below to track the messages.
-   
+
    1. Import Actoverse
-       
+
        ```scala
        import actoverse._
        ```
 
 	1. Mix-in `DebuggingSupporter` to `Actor`.
-	
+
 	    ```scala
 	    class Hoge extends Actor with DebuggingSupporter
 	    // <= class Hoge extends Actor
 	    ```
-	    
+
 	2. Replace `!` (sends a message to an actor) with `!+`.
-	
+
 	    ```scala
 	    fooActor !+ "message" // <= fooActor ! "message"
 	    ```
-	    
+
 	3. Add annotations `@State` to variables that will be possibly changed while the actor receives a message.
 
 		```scala
@@ -51,7 +51,7 @@ Note that this is a too experimental implmentation and there are some limitation
 		```
 
 	4. Load the debugging module into the Akka Actor system.
-	
+
 		```scala
 		implicit val system = ActorSystem()
 		val debuggingSystem = new DebuggingSystem // <= Added
@@ -67,7 +67,7 @@ Note that this is a too experimental implmentation and there are some limitation
 ![arch](https://user-images.githubusercontent.com/7984294/27071388-b75ee24e-5057-11e7-898a-00e2fcb4abc9.png)
 
 - `DebuggingSystem` control all actors. It commits a command issued by `WebSocketHandler` to actors and reports their states to the handler.
-- `WebSocketHandler` performs a mediator between the target system and the debugger UI. To communicate with it, this server parse JSON strings converts Scala object to the JSON format. 
+- `WebSocketHandler` performs a mediator between the target system and the debugger UI. To communicate with it, this server parse JSON strings converts Scala object to the JSON format.
 - Incoming/outgoing messages are trapped by `DebuggingSupporter`s, which is"parasites" on actors.
 
 ### Message Enveloping
@@ -79,6 +79,11 @@ In contrast, the `DebuggingSupporter` of an receiving actor open an envelope and
 The figure below provides an overview of processing incoming messages (envelopes).
 
 ![flowchart](https://user-images.githubusercontent.com/7984294/27072620-f2eef85e-505b-11e7-8d5e-c0a143a13bdb.png)
+
+### Snapshot
+
+DebuggingSystem store the state (variables) of the actor every time when an actor finishes processing an incoming message, that is, finishes `receive`. Currently, developers must specify the variables that should be captured by
+adding `@State` to them. 
 
 ## Limitations
 

@@ -57,7 +57,7 @@ Note that this is a too experimental implmentation and there are some limitation
 		val debuggingSystem = new DebuggingSystem // <= Added
 		debuggingSystem.introduce(system) // <= Added
 		```
-* Adding an annotation `@Comprehensive` to a class (such as one used as a message) make the class name of it shown on the debugger. (ex. Foo(a=1, b=2): `{a:1,b:2}` => `["Foo",{a:1,b:2}]`)
+* Adding an annotation `@Comprehensive` to a class (such as one used as a message) makes the class name of it shown on the debugger. (ex. Foo(a=1, b=2): `{a:1,b:2}` => `["Foo",{a:1,b:2}]`)
 
 * See also [an example repository](https://github.com/45deg/Actoverse-Scala-Demos) and limitations.
 

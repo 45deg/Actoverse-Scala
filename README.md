@@ -2,7 +2,7 @@
 
 Actoverse API implementation for Scala
 
-This library extends [Akka Actor](http://akka.io/) system to realize captureing causal relationships and reverse debugging. 
+This library extends the [Akka Actor](http://akka.io/) system to realize captureing causal relationships and reverse debugging. 
 Note that this is a too experimental implmentation and there are some limitations about the system to perform them.
 
 ## Usage
@@ -68,11 +68,11 @@ Note that this is a too experimental implmentation and there are some limitation
 
 - `DebuggingSystem` control all actors. It commits a command issued by `WebSocketHandler` to actors and reports their states to the handler.
 - `WebSocketHandler` performs a mediator between the target system and the debugger UI. To communicate with it, this server parse JSON strings converts Scala object to the JSON format. 
-- Incoming/outgoing messages are trapped by `DebuggingSupporter`, which is a "parasite" on actors.
+- Incoming/outgoing messages are trapped by `DebuggingSupporter`s, which is"parasites" on actors.
 
 ### Message Enveloping
 
-All the messages sent by actors with `!+` are attached an additional information (internally, called `Envelope`) that includes sender and receiver's Actor pathes, Lamport timestamps, and auto-generated UUID.
+All the messages sent by actors with `!+` are attached an additional information (internally, called `Envelope`) that includes sender and receiver's Actor pathes, Lamport timestamps, and auto-generated UUIDs.
 
 In contrast, the `DebuggingSupporter` of an receiving actor open an envelope and deliver the original message in it to the actor. The idea of interception comes from [Receive Pipeline Pattern](http://doc.akka.io/docs/akka/2.4-M1/contrib/receive-pipeline.html)
 

@@ -53,8 +53,16 @@ trait DebuggingInterceptor extends ReceivePipeline with Actor with SnapShotTaker
       ReceivePipeline.HandledCompletely // break the chain
     case RequestProtocol.ResendMessage(time) =>
       import scala.concurrent.ExecutionContext.Implicits.global
-      val resendMessages = receivedLog.getOrElse(time, List.empty) // orelse
-      receivedLog = receivedLog.filter(_._1 < time)
+      // messages that are received at `time`
+      val receivedAtTime = receivedLog.getOrElse(time, List.empty)
+      // separate before/after `time`
+      val(before, after) = receivedLog.partition(_._1 < time)
+      // rewrite message log entries after `time`
+      receivedLog = before
+      // messages that was sent before `time` though received after `time`
+      val cuttingMessages = after.flatMap( _._2.filter( _.time < time ) )
+      // messages to be resend
+      val resendMessages = receivedAtTime ++ cuttingMessages
       resendMessages.foreach { message =>
         self.tell(message, message.senderRef)
       }

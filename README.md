@@ -3,11 +3,11 @@
 Actoverse API implementation for Scala
 
 This library extends the [Akka Actor](http://akka.io/) system to realize captureing causal relationships and reverse debugging.
-Note that this is a too experimental implmentation and there are some limitations about the system to perform them.
+Note that this implmentation is a too experimental and there are several limitations for debugging.
 
 ## Usage
 
-* Prepare Scala (2.11.8+) and sbt (0.13.15+) environment.
+* Prepare Scala (2.11.8+) and sbt (0.13.15+).
 
 * Add lines to `build.sbt` of your project to import the library code from GitHub.
 
@@ -23,9 +23,9 @@ Note that this is a too experimental implmentation and there are some limitation
 	actoverse.wshandler.port = 3000
 	```
 
-* Modify your Akka code like below to track the messages.
+* Modify your Akka code like below for tracking the messages.
 
-   1. Import Actoverse
+   1. Import Actoverse.
 
        ```scala
        import actoverse._
@@ -44,7 +44,7 @@ Note that this is a too experimental implmentation and there are some limitation
 	    fooActor !+ "message" // <= fooActor ! "message"
 	    ```
 
-	3. Add annotations `@State` to variables that will be possibly changed while the actor receives a message.
+	3. Add annotations `@State` to the variables which can be changed while the actor receives a message.
 
 		```scala
 		@State var count: Int = 0
@@ -57,9 +57,9 @@ Note that this is a too experimental implmentation and there are some limitation
 		val debuggingSystem = new DebuggingSystem // <= Added
 		debuggingSystem.introduce(system) // <= Added
 		```
-* Adding an annotation `@Comprehensive` to a class (such as one used as a message) makes the class name of it shown on the debugger. (ex. Foo(a=1, b=2): `{a:1,b:2}` => `["Foo",{a:1,b:2}]`)
+* By adding an annotation `@Comprehensive` to the class, you can make its name shown on the debugger. (ex. Foo(a=1, b=2): `{a:1,b:2}` => `["Foo",{a:1,b:2}]`)
 
-* See also [an example repository](https://github.com/45deg/Actoverse-Scala-Demos) and limitations.
+* See also: [An Example Repository](https://github.com/45deg/Actoverse-Scala-Demos).
 
 ## How it works
 
@@ -67,15 +67,15 @@ Note that this is a too experimental implmentation and there are some limitation
 
 ![arch](https://user-images.githubusercontent.com/7984294/27071388-b75ee24e-5057-11e7-898a-00e2fcb4abc9.png)
 
-- `DebuggingSystem` control all actors. It commits a command issued by `WebSocketHandler` to actors and reports their states to the handler.
-- `WebSocketHandler` performs a mediator between the target system and the debugger UI. To communicate with it, this server parse JSON strings converts Scala object to the JSON format.
-- Incoming/outgoing messages are trapped by `DebuggingSupporter`s, which is"parasites" on actors.
+- `DebuggingSystem` controls actors. It commits a command from `WebSocketHandler` to actors and reports their states to the handler.
+- `WebSocketHandler` performs a mediator between the target system and the debugger UI.
+- Incoming/outgoing messages are trapped by `DebuggingSupporter`s, which are accessories to actors.
 
 ### Message Enveloping
 
-All the messages sent by actors with `!+` are attached an additional information (internally, called `Envelope`) that includes sender and receiver's Actor pathes, Lamport timestamps, and auto-generated UUIDs.
+The debugger attaches an additional information (internally, called `Envelope`) to all the messages sent by actors with `!+`. It includes sender and receiver's Actor pathes, Lamport timestamps, and auto-generated UUIDs.
 
-In contrast, the `DebuggingSupporter` of an receiving actor open an envelope and deliver the original message in it to the actor. The idea of interception comes from [Receive Pipeline Pattern](http://doc.akka.io/docs/akka/2.4-M1/contrib/receive-pipeline.html)
+On the other hand, the `DebuggingSupporter` of an receiving actor opens an envelope and delivers the original message to the actor. The idea of interception comes from [Receive Pipeline Pattern](http://doc.akka.io/docs/akka/2.4-M1/contrib/receive-pipeline.html)
 
 The figure below provides an overview of processing incoming messages (envelopes).
 
@@ -83,13 +83,12 @@ The figure below provides an overview of processing incoming messages (envelopes
 
 ### Snapshot
 
-DebuggingSystem store the state (variables) of the actor every time when an actor finishes processing an incoming message, that is, finishes `receive`. Currently, developers must specify the variables that should be captured by
-adding `@State` to them.
+`DebuggingSupporter` stores the state (variables) of the actor itself every time when an actor finishes processing an incoming message, that is, finishes `receive`. Currently, you must specify the variables to be captured by adding `@State` to them.
 
 ## Limitations
 
-The implementation does not cover some functions of Akka and Scala, such as:
+This implementation does not cover several functions of Akka or Scala, such as:
 
 - To read/write external files or networks. The debugger cannot capture these modifications and restore a previous state of them.
-- To deal with stopping and restarting actors. Because of Akka Actor's lifecycle, it is impossible to regenerate an actor with the same reference as the actor which stopped manually. Therefore, restoring the system to the former condition is difficult.
-- To hold the `@State` variables which can't be copied or duplicated. This library copies and stores `@State` variables into the list. By the same reason, an object that has some references of variables that can be modified from the outside of the Actor system may performs wrongly.
+- To deal with stopping and restarting actors. Because of Akka Actor's lifecycle, it is impossible to regenerate an actor with the same reference as the previous actor, which stopped manually. Therefore, restoring the system to the former condition is difficult.
+- To hold the `@State` variables which cannot be copied or duplicated. This framework copies and stores `@State` variables into the list. For the same reason, inconsistencies may occur by adding `@State` to a reference variable of another object which can be modified from the outside of the Actor system.

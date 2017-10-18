@@ -3,7 +3,7 @@
 Actoverse API implementation for Scala
 
 This library extends the [Akka Actor](http://akka.io/) system to realize captureing causal relationships and reverse debugging.
-Note that this implmentation is a too experimental and there are several limitations for debugging.
+Note that this implmentation is too experimental and there are several limitations for debugging.
 
 ## Usage
 

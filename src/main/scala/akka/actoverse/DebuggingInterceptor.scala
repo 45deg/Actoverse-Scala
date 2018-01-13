@@ -4,14 +4,10 @@ import akka.actor._
 import akka.contrib.pattern.ReceivePipeline
 import scala.collection.mutable._
 
-import akka.util.Timeout
-import scala.concurrent.duration._
-import scala.util.{Success, Failure}
-
 case class Envelope(data: Any, time: Long, uid: String, senderRef: ActorRef)
 case class SkipCensorship(envelope: Envelope)
 
-trait DebuggingInterceptor extends ReceivePipeline with Actor with SnapShotTaker {
+trait DebuggingInterceptor extends ReceivePipeline with SnapShotTaker {
   import ResponseProtocol._
 
   private var time: Long = 0

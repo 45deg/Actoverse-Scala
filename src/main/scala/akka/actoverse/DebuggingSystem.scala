@@ -1,4 +1,4 @@
-package actoverse
+package akka.actoverse
 
 import akka.actor.{ Actor, ActorSystem, Props, ActorRef}
 import akka.stream.ActorMaterializer

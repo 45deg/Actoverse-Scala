@@ -1,4 +1,4 @@
-package actoverse
+package akka.actoverse
 
 /*
   Handles sending messsages to websocket clients
@@ -21,7 +21,7 @@ object DeliveryCommand {
 }
 
 class DeliveryActor(system: ActorSystem) extends Actor {
-  import actoverse.ResponseProtocol._
+  import akka.actoverse.ResponseProtocol._
   import context.dispatcher
   implicit val timeout = Timeout(100 milliseconds) // Timeout: 100ms
 

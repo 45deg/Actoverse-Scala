@@ -1,4 +1,4 @@
-package actoverse
+package akka.actoverse
 
 import akka.actor._
 import net.liftweb.json._

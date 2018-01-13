@@ -1,4 +1,4 @@
-package actoverse
+package akka.actoverse
 
 import scala.concurrent._
 import scala.concurrent.duration._

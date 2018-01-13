@@ -1,8 +1,6 @@
-package actoverse
+package akka.actoverse
 
 import akka.actor._
-import actoverse._
-import actoverse._
 import akka.contrib.pattern.ReceivePipeline
 import scala.collection.mutable._
 

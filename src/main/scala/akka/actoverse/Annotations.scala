@@ -1,4 +1,4 @@
-package actoverse
+package akka.actoverse
 
 // Member annotation
 case class State() extends scala.annotation.StaticAnnotation

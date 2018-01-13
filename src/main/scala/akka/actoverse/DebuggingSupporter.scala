@@ -1,4 +1,3 @@
-package actoverse
-import actoverse._
+package akka.actoverse
 
 trait DebuggingSupporter extends DebuggingInterceptor with SnapShotTaker

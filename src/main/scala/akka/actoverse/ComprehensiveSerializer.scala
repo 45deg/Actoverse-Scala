@@ -1,4 +1,4 @@
-package actoverse
+package akka.actoverse
 
 import net.liftweb.json._
 import net.liftweb.json.JsonDSL._

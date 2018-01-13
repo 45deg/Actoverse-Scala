@@ -1,4 +1,4 @@
-package actoverse
+package akka.actoverse
 
 import scala.reflect.runtime.universe._
 

@@ -10,9 +10,7 @@ trait SnapShotTaker {
 
   def takeStateSnapshot(serialNr: Long): immutable.Map[String, Any] = {
     val targetFields = im.symbol.selfType.members
-                        .collect { case s: TermSymbol => s }
-                        .filter(f =>
-                          f.annotations.exists(_.tree.tpe =:= typeOf[State]))
+                        .collect { case s: TermSymbol if s.isVar => s }
     stateSnapshots(serialNr) = targetFields.map { field =>
       (field, im.reflectField(field).get)
     }.toMap

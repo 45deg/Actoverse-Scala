@@ -9,8 +9,7 @@ class ComprehensiveSerializer extends Serializer[Any] {
    private def isComprehensiveClass(obj: Any) = {
       val cls: Class[_] = obj.getClass
       val m = ru.runtimeMirror(cls.getClassLoader) // RuntimeMirror
-      val annotations = m.classSymbol(cls).annotations
-      annotations.exists(_.tree.tpe =:= ru.typeOf[Comprehensive])
+      m.classSymbol(cls).isCaseClass
    }
    private def isTuple(cls: Class[_]) = {
      cls.getSimpleName.startsWith("Tuple")

@@ -9,6 +9,7 @@ Note that this implmentation is a too experimental and there are several limitat
 
 * Prepare Scala (2.11.8+) and sbt (0.13.15+).
 
+<!-- TODO: Replace with addSbtPlugin -->
 * Add lines to `build.sbt` of your project to import the library code from GitHub.
 
 	```scala
@@ -43,21 +44,6 @@ Note that this implmentation is a too experimental and there are several limitat
 	    ```scala
 	    fooActor !+ "message" // <= fooActor ! "message"
 	    ```
-
-	3. Add annotations `@State` to the variables which can be changed while the actor receives a message.
-
-		```scala
-		@State var count: Int = 0
-		```
-
-	4. Load the debugging module into the Akka Actor system.
-
-		```scala
-		implicit val system = ActorSystem()
-		val debuggingSystem = new DebuggingSystem // <= Added
-		debuggingSystem.introduce(system) // <= Added
-		```
-* By adding an annotation `@Comprehensive` to the class, you can make its name shown on the debugger. (ex. Foo(a=1, b=2): `{a:1,b:2}` => `["Foo",{a:1,b:2}]`)
 
 * See also: [An Example Repository](https://github.com/45deg/Actoverse-Scala-Demos).
 

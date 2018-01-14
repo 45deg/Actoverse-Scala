@@ -9,7 +9,9 @@ class ComprehensiveSerializer extends Serializer[Any] {
    private def isComprehensiveClass(obj: Any) = {
       val cls: Class[_] = obj.getClass
       val m = ru.runtimeMirror(cls.getClassLoader) // RuntimeMirror
-      m.classSymbol(cls).isCaseClass
+
+       m.classSymbol(cls).isCaseClass &&
+         !obj.isInstanceOf[ResponseProtocol.ActorInfo]
    }
    private def isTuple(cls: Class[_]) = {
      cls.getSimpleName.startsWith("Tuple")

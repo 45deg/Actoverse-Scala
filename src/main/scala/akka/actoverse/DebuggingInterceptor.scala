@@ -31,7 +31,7 @@ trait DebuggingInterceptor extends ReceivePipeline with SnapShotTaker {
   }
 
   /* the pipeline handles Rollback messages */
-  pipelineInner {
+  def processMetaMessage(msg: Any): Option[Any] = msg match {
     case RequestProtocol.Rollback(time) =>
       // recovers state
       val latestState = recoverStateUntil(time)
@@ -44,52 +44,47 @@ trait DebuggingInterceptor extends ReceivePipeline with SnapShotTaker {
         self.path
       )
       sender ! 1
-      ReceivePipeline.HandledCompletely // break the chain
+      None
     case RequestProtocol.ResendMessage(time) =>
-      import scala.concurrent.ExecutionContext.Implicits.global
       // messages that are received at `time`
       val receivedAtTime = receivedLog.getOrElse(time, List.empty)
       // separate before/after `time`
-      val(before, after) = receivedLog.partition(_._1 < time)
+      val (before, after) = receivedLog.partition(_._1 < time)
       // rewrite message log entries after `time`
       receivedLog = before
       // messages that was sent before `time` though received after `time`
-      val cuttingMessages = after.flatMap( _._2.filter( _.time < time ) )
+      val cuttingMessages = after.flatMap(_._2.filter(_.time < time))
       // messages to be resend
       val resendMessages = receivedAtTime ++ cuttingMessages
       resendMessages.foreach { message =>
         self.tell(message, message.senderRef)
       }
-      ReceivePipeline.HandledCompletely
+      None
     case RequestProtocol.AddCensorship(id, censorshipType, value) =>
       censorships(id) = Censorship.fromJson(censorshipType, value)
       sender ! 1
-      ReceivePipeline.HandledCompletely
+      None
     case RequestProtocol.RemoveCensorship(id) =>
       censorships -= id
       sender ! 1
-      ReceivePipeline.HandledCompletely
+      None
     case RequestProtocol.SelectFromPool(id) =>
-      if(messagePool.contains(id)) {
+      if (messagePool.contains(id)) {
         val msg = messagePool(id)
         messagePool -= id
         // Inner(msg) does not work because `sender` can't be overwritten.
         self.tell(SkipCensorship(msg), msg.senderRef)
       }
-      ReceivePipeline.HandledCompletely
-  }
-
-  /* the pipeline that convert from raw messages to envelopes */
-  pipelineInner {
-    case e: Envelope => ReceivePipeline.Inner(e)
-    case e: SkipCensorship => ReceivePipeline.Inner(e)
+      None
+    case e: Envelope => Some(e)
+    case e: SkipCensorship => Some(e)
     case data =>
       uidNr += 1
-      ReceivePipeline.Inner(Envelope(data, time, s"unknown-$uidNr", sender))
-  }
+      Some(Envelope(data, time, s"unknown-$uidNr", sender))
+}
 
   /* pipeline that filter messages */
-  pipelineInner {
+  def processCensorship(msg: Any): Option[Any] = msg match {
     case e @ Envelope(message, timestamp, uid, senderRef)  =>
       val isCensored = censorships.exists { case (id, c) =>
         val result = c.check(senderRef.path, self.path, message)
@@ -104,34 +99,45 @@ trait DebuggingInterceptor extends ReceivePipeline with SnapShotTaker {
           time, self.path
         )
         // addpool
-        ReceivePipeline.HandledCompletely
+        None
       } else {
-        // pass
-        ReceivePipeline.Inner(e)
+        Some(e)
       }
-    case SkipCensorship(e) => ReceivePipeline.Inner(e)
+    case SkipCensorship(e) => Some(e)
   }
 
   /* Pipeline that send "received" messages to websocket clients */
-  pipelineInner { case e @ Envelope(message, timestamp, uid, senderRef) =>
-    // increments my clock
-    time = Math.max(timestamp, time) + 1
-    // sends to ws api
-    dispatcher ! ReceivedMessage(
-      MessageBody(senderRef.path, self.path, message, timestamp, uid ),
-      time, self.path
-    )
-    // add to log
-    if (!receivedLog.contains(time)) {
-      receivedLog += (time -> new HashSet[Envelope])
-    }
-    receivedLog(time) += e
-    // calls original receive
-    ReceivePipeline.Inner(message).andAfter {
-      // after that takes a snapshot and sends to ws api
-      val currentState = takeStateSnapshot(time)
-      dispatcher ! ActorUpdated(currentState, time, self.path)
-    }
+  /**
+    * INTERNAL API.
+    */
+
+  pipelineInner { case msg =>
+    (for {
+      msg1 <- processMetaMessage(msg)
+      msg2 <- processCensorship(msg1)
+    } yield {
+      msg2 match {
+        case e @ Envelope(message, timestamp, uid, senderRef) =>
+          // increments my clock
+          time = Math.max(timestamp, time) + 1
+          // sends to ws api
+          dispatcher ! ReceivedMessage(
+            MessageBody(senderRef.path, self.path, message, timestamp, uid ),
+            time, self.path
+          )
+          // add to log
+          if (!receivedLog.contains(time)) {
+            receivedLog += (time -> new HashSet[Envelope])
+          }
+          receivedLog(time) += e
+          // calls original receive
+          ReceivePipeline.Inner(message).andAfter {
+            // after that takes a snapshot and sends to ws api
+            val currentState = takeStateSnapshot(time)
+            dispatcher ! ActorUpdated(currentState, time, self.path)
+          }
+      }
+    }).getOrElse(ReceivePipeline.HandledCompletely)
   }
 
   implicit class PimpedActorRef(target: ActorRef) {

@@ -18,14 +18,14 @@ class DebuggingSystem {
 
   def dispatcher = _dispatcher.get
 
-  def introduce(system: ActorSystem) = {
+  def introduce(system: ActorSystem): Unit = {
     // Make a dependent actor system for websocket
     implicit val wsSystem = ActorSystem()
     implicit val materializer = ActorMaterializer()
     currentSystem = Some(wsSystem)
 
     // message dispatcher
-    val dispatcherRef = system.actorOf(Props(new DeliveryActor(system)), name = "__debugger")
+    lazy val dispatcherRef = system.actorOf(Props(new DeliveryActor(system)), name = "__debugger")
     // outgoing stream for websocket
     val source = Source.actorRef[Message](1000, akka.stream.OverflowStrategy.fail)
                        .mapMaterializedValue(dispatcherRef ! DeliveryCommand.NewClient(_))
@@ -48,14 +48,14 @@ class DebuggingSystem {
     }
 
     // Listen
-    val hostname = system.settings.config.getString("actoverse.wshandler.hostname")
-    val port = system.settings.config.getInt("actoverse.wshandler.port")
+    val hostname = wsSystem.settings.config.getString("actoverse.wshandler.hostname")
+    val port = wsSystem.settings.config.getInt("actoverse.wshandler.port")
     val bindingFuture = Http().bindAndHandleSync(requestHandler, interface = hostname, port = port)
 
     _dispatcher = Some(dispatcherRef)
   }
 
   def terminate() = {
-    currentSystem.get.terminate
+    currentSystem.map(s => s.terminate())
   }
 }

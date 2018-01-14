@@ -1,13 +1,12 @@
 package akka.actoverse
 
 import akka.actor._
-import akka.contrib.pattern.ReceivePipeline
 import scala.collection.mutable._
 
 case class Envelope(data: Any, time: Long, uid: String, senderRef: ActorRef)
 case class SkipCensorship(envelope: Envelope)
 
-trait DebuggingInterceptor extends ReceivePipeline with SnapShotTaker {
+trait DebuggingInterceptor extends Actor with SnapShotTaker {
   import ResponseProtocol._
 
   private var time: Long = 0
@@ -111,8 +110,8 @@ trait DebuggingInterceptor extends ReceivePipeline with SnapShotTaker {
     * INTERNAL API.
     */
 
-  pipelineInner { case msg =>
-    (for {
+  def wrapReceive(msg: Any, receive: Receive) : Unit = {
+    for {
       msg1 <- processMetaMessage(msg)
       msg2 <- processCensorship(msg1)
     } yield {
@@ -131,13 +130,16 @@ trait DebuggingInterceptor extends ReceivePipeline with SnapShotTaker {
           }
           receivedLog(time) += e
           // calls original receive
-          ReceivePipeline.Inner(message).andAfter {
-            // after that takes a snapshot and sends to ws api
-            val currentState = takeStateSnapshot(time)
-            dispatcher ! ActorUpdated(currentState, time, self.path)
-          }
+          receive(message)
+          val currentState = takeStateSnapshot(time)
+          dispatcher ! ActorUpdated(currentState, time, self.path)
+        case _ => throw new Exception("Envelope-unwrapped message arrived")
       }
-    }).getOrElse(ReceivePipeline.HandledCompletely)
+    }
+  }
+
+  override protected[akka] def aroundReceive(receive: Receive, msg: Any): Unit = {
+    super.aroundReceive({ case m => wrapReceive(m, receive) }, msg)
   }
 
   implicit class PimpedActorRef(target: ActorRef) {

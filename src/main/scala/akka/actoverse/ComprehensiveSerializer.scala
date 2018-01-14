@@ -7,11 +7,11 @@ import scala.reflect.runtime.{universe => ru}
 class ComprehensiveSerializer extends Serializer[Any] {
    private var lock: Boolean = false
    private def isComprehensiveClass(obj: Any) = {
-      val cls: Class[_] = obj.getClass
-      val m = ru.runtimeMirror(cls.getClassLoader) // RuntimeMirror
-
-       m.classSymbol(cls).isCaseClass &&
-         !obj.isInstanceOf[ResponseProtocol.ActorInfo]
+     val cls: Class[_] = obj.getClass
+     val m = ru.runtimeMirror(cls.getClassLoader) // RuntimeMirror
+     val pkgName = cls.getPackage.getName
+     m.classSymbol(cls).isCaseClass &&
+       !(pkgName.startsWith("akka") || pkgName.startsWith("net.liftweb.json"))
    }
    private def isTuple(cls: Class[_]) = {
      cls.getSimpleName.startsWith("Tuple")

@@ -21,7 +21,7 @@ trait DebuggingInterceptor extends ReceivePipeline with SnapShotTaker {
     super.preStart()
     dispatcher ! ActorCreated(
       ActorInfo(
-        getClass.getName,
+        getClass.getSimpleName,
         takeStateSnapshot(0)
       ),
       0,

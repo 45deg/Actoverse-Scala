@@ -12,6 +12,10 @@ import akka.http.scaladsl.model.HttpMethods._
 import com.typesafe.config.Config
 import scala.concurrent.Promise
 
+object DebuggingSystem {
+  val wsSystem = ActorSystem()
+}
+
 class DebuggingSystem {
   private var _dispatcher: Option[ActorRef] = None
   private var currentSystem: Option[ActorSystem] = None
@@ -20,7 +24,7 @@ class DebuggingSystem {
 
   def introduce(system: ActorSystem): Unit = {
     // Make a dependent actor system for websocket
-    implicit val wsSystem = ActorSystem()
+    implicit val wsSystem = DebuggingSystem.wsSystem
     implicit val materializer = ActorMaterializer()
     currentSystem = Some(wsSystem)
 

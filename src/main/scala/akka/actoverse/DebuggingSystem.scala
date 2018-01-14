@@ -13,7 +13,7 @@ import com.typesafe.config.Config
 import scala.concurrent.Promise
 
 object DebuggingSystem {
-  val wsSystem = ActorSystem()
+  lazy val wsSystem = ActorSystem()
 }
 
 class DebuggingSystem {

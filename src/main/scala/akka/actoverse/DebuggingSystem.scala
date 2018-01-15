@@ -29,7 +29,7 @@ class DebuggingSystem {
     currentSystem = Some(wsSystem)
 
     // message dispatcher
-    lazy val dispatcherRef = system.actorOf(Props(new DeliveryActor(system)), name = "__debugger")
+    lazy val dispatcherRef = system.actorOf(Props(new DeliveryActor(system)), name = system.settings.config.getString("actoverse.debugger-actor-name"))
     // outgoing stream for websocket
     val source = Source.actorRef[Message](1000, akka.stream.OverflowStrategy.fail)
                        .mapMaterializedValue(dispatcherRef ! DeliveryCommand.NewClient(_))

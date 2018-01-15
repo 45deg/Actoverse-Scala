@@ -5,8 +5,8 @@ import scala.reflect.runtime.universe._
 trait SnapShotTaker {
   import scala.collection._
   private var stateSnapshots = mutable.Map[Long, immutable.Map[TermSymbol, Any]]()
-  private val rm = runtimeMirror(getClass.getClassLoader)
-  private val im = rm.reflect(this)
+
+  def im: InstanceMirror
 
   def takeStateSnapshot(serialNr: Long): immutable.Map[String, Any] = {
     val targetFields = im.symbol.selfType.members

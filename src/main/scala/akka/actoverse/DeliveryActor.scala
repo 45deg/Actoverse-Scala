@@ -37,7 +37,6 @@ class DeliveryActor(system: ActorSystem) extends Actor {
     case DeliveryCommand.NewActor(target) =>
       targets += target
     case msg: ResponseMessage => // message from actors
-      //println(msg.toJson)
       log += msg
       dispatch(msg.toJson)
     case RequestProtocol.DumpLog =>

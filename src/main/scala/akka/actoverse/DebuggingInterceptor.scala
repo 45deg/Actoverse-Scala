@@ -6,7 +6,7 @@ import scala.collection.mutable._
 case class Envelope(data: Any, time: Long, uid: String, senderRef: ActorRef)
 case class SkipCensorship(envelope: Envelope)
 
-trait DebuggingInterceptor extends Actor with SnapShotTaker {
+trait DebuggingInterceptor extends Actor {
   import ResponseProtocol._
 
   private var time: Long = 0
@@ -21,7 +21,7 @@ trait DebuggingInterceptor extends Actor with SnapShotTaker {
     dispatcher ! ActorCreated(
       ActorInfo(
         getClass.getSimpleName,
-        takeStateSnapshot(0)
+        this.asInstanceOf[SnapShotTaker].takeStateSnapshot(0)
       ),
       0,
       self.path
@@ -33,7 +33,7 @@ trait DebuggingInterceptor extends Actor with SnapShotTaker {
   def processMetaMessage(msg: Any): Option[Any] = msg match {
     case RequestProtocol.Rollback(time) =>
       // recovers state
-      val latestState = recoverStateUntil(time)
+      val latestState = this.asInstanceOf[SnapShotTaker].recoverStateUntil(time)
       if (time - 1 < this.time) {
         this.time = time - 1
       }
@@ -131,7 +131,7 @@ trait DebuggingInterceptor extends Actor with SnapShotTaker {
           receivedLog(time) += e
           // calls original receive
           receive(message)
-          val currentState = takeStateSnapshot(time)
+          val currentState = this.asInstanceOf[SnapShotTaker].takeStateSnapshot(time)
           dispatcher ! ActorUpdated(currentState, time, self.path)
         case _ => throw new Exception("Envelope-unwrapped message arrived")
       }

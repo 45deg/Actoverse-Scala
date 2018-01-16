@@ -1,27 +1,38 @@
 package akka.actoverse
 
 import akka.actor._
-import scala.collection.mutable._
+import scala.collection._
+import scala.reflect.runtime.universe._
 
 case class Envelope(data: Any, time: Long, uid: String, senderRef: ActorRef)
 case class SkipCensorship(envelope: Envelope)
 
-trait DebuggingInterceptor extends Actor {
+trait DebuggingInterceptor {
+  def actor: Actor
+}
+
+trait DebuggingInterceptorImpl extends DebuggingInterceptor {
   import ResponseProtocol._
+
+  private def dispatcher = actor.context.actorSelection("/user/__debugger")
+  private def sender: ActorRef = actor.sender()
+  private def self: ActorRef = actor.self
 
   private var time: Long = 0
   private var uidNr: Long = 0
-  private def dispatcher = context.actorSelection("/user/__debugger")
-  private var receivedLog: Map[Long, Set[Envelope]] = new HashMap[Long, Set[Envelope]]
-  private var censorships: Map[String, Censorship] = new HashMap[String, Censorship]
-  private var messagePool: Map[String, Envelope] = new HashMap[String, Envelope]
 
-  override def preStart() {
-    super.preStart()
+  private var receivedLog: mutable.Map[Long, Set[Envelope]] = new mutable.HashMap[Long, Set[Envelope]]
+  private var censorships: mutable.Map[String, Censorship] = new mutable.HashMap[String, Censorship]
+  private var messagePool: mutable.Map[String, Envelope] = new mutable.HashMap[String, Envelope]
+
+  private var stateSnapshots = mutable.Map[Long, immutable.Map[TermSymbol, Any]]()
+
+  def beforeStart() {
+    println("beforestart")
     dispatcher ! ActorCreated(
       ActorInfo(
         getClass.getSimpleName,
-        this.asInstanceOf[SnapShotTaker].takeStateSnapshot(0)
+        takeStateSnapshot(0)
       ),
       0,
       self.path
@@ -33,7 +44,7 @@ trait DebuggingInterceptor extends Actor {
   def processMetaMessage(msg: Any): Option[Any] = msg match {
     case RequestProtocol.Rollback(time) =>
       // recovers state
-      val latestState = this.asInstanceOf[SnapShotTaker].recoverStateUntil(time)
+      val latestState = recoverStateUntil(time)
       if (time - 1 < this.time) {
         this.time = time - 1
       }
@@ -110,7 +121,7 @@ trait DebuggingInterceptor extends Actor {
     * INTERNAL API.
     */
 
-  def wrapReceive(msg: Any, receive: Receive) : Unit = {
+  def wrapReceive(msg: Any, receive: Actor.Receive) : Unit = {
     for {
       msg1 <- processMetaMessage(msg)
       msg2 <- processCensorship(msg1)
@@ -126,20 +137,17 @@ trait DebuggingInterceptor extends Actor {
           )
           // add to log
           if (!receivedLog.contains(time)) {
-            receivedLog += (time -> new HashSet[Envelope])
+            receivedLog += (time -> new mutable.HashSet[Envelope])
           }
           receivedLog(time) += e
           // calls original receive
           receive(message)
-          val currentState = this.asInstanceOf[SnapShotTaker].takeStateSnapshot(time)
+          // take a snapshot
+          val currentState = takeStateSnapshot(time)
           dispatcher ! ActorUpdated(currentState, time, self.path)
         case _ => throw new Exception("Envelope-unwrapped message arrived")
       }
     }
-  }
-
-  override protected[akka] def aroundReceive(receive: Receive, msg: Any): Unit = {
-    super.aroundReceive({ case m => wrapReceive(m, receive) }, msg)
   }
 
   implicit class PimpedActorRef(target: ActorRef) {
@@ -158,5 +166,34 @@ trait DebuggingInterceptor extends Actor {
       val envelope = Envelope(message, time, uid, sender)
       target.tell(envelope, sender)
     }
+  }
+
+  def takeStateSnapshot(serialNr: Long): immutable.Map[String, Any] = {
+    val im = runtimeMirror(getClass.getClassLoader).reflect(actor)
+    val targetFields = im.symbol.selfType.members
+      .collect { case s: TermSymbol if s.isVar => s }
+    println(targetFields)
+    stateSnapshots(serialNr) = targetFields.map { field =>
+      (field, im.reflectField(field).get)
+    }.toMap
+
+    // convert to Map[String, Any]
+    stateSnapshots(serialNr).map({ case (field, value) =>
+      (field.name.toString, value)
+    })
+  }
+
+  def recoverStateUntil(timestamp: Long): immutable.Map[String, Any] = {
+    val im = runtimeMirror(getClass.getClassLoader).reflect(actor)
+    // filterKeys does not return mutable one
+    stateSnapshots = stateSnapshots.filter(_._1 < timestamp)
+    val latestState = stateSnapshots(stateSnapshots.keys.max)
+    latestState.foreach { case (field, value) =>
+      im.reflectField(field).set(value) }
+
+    // convert to Map[String, Any]
+    latestState.map({ case (field, value) =>
+      (field.name.toString, value)
+    })
   }
 }

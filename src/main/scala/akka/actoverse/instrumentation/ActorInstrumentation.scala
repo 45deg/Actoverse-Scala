@@ -21,9 +21,6 @@ class ActorInstrumentation {
 
   @DeclareMixin("akka.actor.Actor+")
   def mixinDebuggingSupporterToActor(_actor: Actor): DebuggingInterceptor = {
-    /*new DebuggingInterceptor {
-      override def actor: Actor = _actor
-    }*/
     val actorPath: ActorPath = _actor.self.path
     if(targetRegex.pattern.matcher(actorPath.toString).matches() && actorPath.name != debuggerPath) {
       new ConcreteDebuggingInterceptor(_actor)
@@ -65,6 +62,3 @@ class ActorInstrumentation {
     }
   }
 }
-
-// private val rm = runtimeMirror(getClass.getClassLoader)
-// private val im = rm.reflect(this)

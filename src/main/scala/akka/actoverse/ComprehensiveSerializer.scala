@@ -1,7 +1,6 @@
 package akka.actoverse
 
 import net.liftweb.json._
-import net.liftweb.json.JsonDSL._
 import scala.reflect.runtime.{universe => ru}
 
 class ComprehensiveSerializer extends Serializer[Any] {
@@ -11,7 +10,7 @@ class ComprehensiveSerializer extends Serializer[Any] {
      val m = ru.runtimeMirror(cls.getClassLoader) // RuntimeMirror
      val pkgName = cls.getPackage.getName
      m.classSymbol(cls).isCaseClass &&
-       !(pkgName.startsWith("akka") || pkgName.startsWith("net.liftweb.json"))
+       !(pkgName.startsWith("akka") || pkgName.startsWith("net.liftweb.json")) && !isTuple(cls)
    }
    private def isTuple(cls: Class[_]) = {
      cls.getSimpleName.startsWith("Tuple")

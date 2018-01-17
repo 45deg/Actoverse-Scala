@@ -1,6 +1,5 @@
 package akka.actoverse.instrumentation
 
-import org.aspectj.lang.JoinPoint
 import org.aspectj.lang.annotation._
 import akka.actoverse.DebuggingSystem
 import akka.actor.ActorSystem

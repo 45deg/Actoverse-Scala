@@ -2,7 +2,6 @@ package akka.actoverse
 
 import akka.actor._
 import net.liftweb.json._
-import net.liftweb.json.JsonDSL._
 
 object Censorship {
   def fromJson(censorshipType: String, jsonAst: JValue): Censorship = censorshipType match {

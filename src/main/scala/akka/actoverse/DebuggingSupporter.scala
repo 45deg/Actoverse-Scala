@@ -1,3 +1,0 @@
-package akka.actoverse
-
-trait DebuggingSupporter extends DebuggingInterceptor

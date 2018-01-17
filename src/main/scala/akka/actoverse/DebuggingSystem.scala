@@ -1,19 +1,16 @@
 package akka.actoverse
 
-import akka.actor.{ Actor, ActorSystem, Props, ActorRef}
-import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.{ Source, Flow, Keep }
-import akka.stream.scaladsl.Sink
+import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.ws.UpgradeToWebSocket
-import akka.http.scaladsl.model.ws.{ TextMessage, BinaryMessage, Message }
-import akka.http.scaladsl.model.{ HttpResponse, Uri, HttpRequest }
 import akka.http.scaladsl.model.HttpMethods._
-import com.typesafe.config.Config
-import scala.concurrent.Promise
+import akka.http.scaladsl.model.ws.{Message, TextMessage, UpgradeToWebSocket}
+import akka.http.scaladsl.model.{HttpRequest, HttpResponse, Uri}
+import akka.stream.ActorMaterializer
+import akka.stream.scaladsl.{Flow, Sink, Source}
+import com.typesafe.config.ConfigFactory
 
 object DebuggingSystem {
-  lazy val wsSystem = ActorSystem()
+  lazy val wsSystem = ActorSystem(ConfigFactory.load().getString("actoverse.debugger-system-name"))
 }
 
 class DebuggingSystem {

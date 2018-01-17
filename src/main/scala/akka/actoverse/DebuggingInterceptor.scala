@@ -6,9 +6,6 @@ import akka.actor._
 import scala.collection._
 import scala.reflect.runtime.universe._
 
-case class Envelope(data: Any, time: Long, uid: String, senderRef: ActorRef)
-case class SkipCensorship(envelope: Envelope)
-
 trait DebuggingInterceptor {
   def beforeStart(): Unit
   def wrapReceive(msg: Any, receive: Actor.Receive): Unit
@@ -42,7 +39,7 @@ class ConcreteDebuggingInterceptor(val actor: Actor) extends DebuggingIntercepto
   def beforeStart(): Unit = {
     dispatcher ! ActorCreated(
       ActorInfo(
-        getClass.getSimpleName,
+        actor.getClass.getSimpleName,
         takeStateSnapshot(0)
       ),
       0,
@@ -78,7 +75,7 @@ class ConcreteDebuggingInterceptor(val actor: Actor) extends DebuggingIntercepto
       // messages to be resend
       val resendMessages = receivedAtTime ++ cuttingMessages
       resendMessages.foreach { message =>
-        self.tell(message, message.senderRef)
+        self.tell(ResentMessage(message), message.senderRef)
       }
       None
     case RequestProtocol.AddCensorship(id, censorshipType, value) =>
@@ -98,6 +95,7 @@ class ConcreteDebuggingInterceptor(val actor: Actor) extends DebuggingIntercepto
       }
       None
     case e: Envelope => Some(e)
+    case ResentMessage(e) => Some(e)
     case e: SkipCensorship => Some(e)
     case data =>
       uidNr += 1
@@ -176,7 +174,7 @@ class ConcreteDebuggingInterceptor(val actor: Actor) extends DebuggingIntercepto
   }
 
   def takeStateSnapshot(serialNr: Long): immutable.Map[String, Any] = {
-    val im = runtimeMirror(getClass.getClassLoader).reflect(actor)
+    val im = runtimeMirror(actor.getClass.getClassLoader).reflect(actor)
     val targetFields = im.symbol.selfType.members
       .collect { case s: TermSymbol if s.isVar => s }
     stateSnapshots(serialNr) = targetFields.map { field =>
@@ -190,7 +188,7 @@ class ConcreteDebuggingInterceptor(val actor: Actor) extends DebuggingIntercepto
   }
 
   def recoverStateUntil(timestamp: Long): immutable.Map[String, Any] = {
-    val im = runtimeMirror(getClass.getClassLoader).reflect(actor)
+    val im = runtimeMirror(actor.getClass.getClassLoader).reflect(actor)
     // filterKeys does not return mutable one
     stateSnapshots = stateSnapshots.filter(_._1 < timestamp)
     val latestState = stateSnapshots(stateSnapshots.keys.max)

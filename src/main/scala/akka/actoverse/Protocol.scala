@@ -8,12 +8,20 @@ import akka.actor.{ActorPath, ActorRef}
 
 trait MetaMessage
 
+// Internal metamessages
+
+case class Envelope(data: Any, time: Long, uid: String, senderRef: ActorRef) extends MetaMessage
+case class SkipCensorship(envelope: Envelope) extends MetaMessage
+case class ResentMessage(data: Envelope) extends MetaMessage
+
 sealed trait DeliveryCommand extends MetaMessage
 
 object DeliveryCommand {
   case class NewClient(subscriber: ActorRef) extends DeliveryCommand
   case class NewActor(ref: ActorRef) extends DeliveryCommand
 }
+
+// External metamessages
 
 object ResponseProtocol {
 

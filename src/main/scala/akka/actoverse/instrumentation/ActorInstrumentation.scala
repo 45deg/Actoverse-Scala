@@ -54,7 +54,7 @@ class ActorInstrumentation {
         val envelope = actor.asInstanceOf[DebuggingInterceptor].wrapEnvelope(self, message, sender)
         val args: Array[AnyRef] = Array(self.asInstanceOf[AnyRef],
           envelope.asInstanceOf[AnyRef], sender.asInstanceOf[AnyRef])
-        println(s"!pass $envelope")
+        // println(s"!pass $envelope")
         jp.proceed(args)
       } catch {
         case e: ClassCastException =>

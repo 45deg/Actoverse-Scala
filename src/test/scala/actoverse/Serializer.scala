@@ -1,10 +1,8 @@
+package akka.actoverse
 
 import org.scalatest.FlatSpec
-import actoverse._
 import net.liftweb.json._
-import net.liftweb.json.JsonDSL._
 
-@Comprehensive
 case class Hoge(a: Int, b: Int)
 
 class SerializerSpec extends FlatSpec {

@@ -1,6 +1,8 @@
 package akka.actoverse
 
+import akka.actor.Actor.Receive
 import akka.actor._
+
 import scala.collection._
 import scala.reflect.runtime.universe._
 
@@ -8,13 +10,23 @@ case class Envelope(data: Any, time: Long, uid: String, senderRef: ActorRef)
 case class SkipCensorship(envelope: Envelope)
 
 trait DebuggingInterceptor {
-  def actor: Actor
+  def beforeStart(): Unit
+  def wrapReceive(msg: Any, receive: Actor.Receive): Unit
+  def wrapEnvelope(target: ActorRef, message: Any, sender: ActorRef): Any
 }
 
-trait DebuggingInterceptorImpl extends DebuggingInterceptor {
+object DebuggingInterceptor {
+  object Null extends DebuggingInterceptor {
+    override def beforeStart(): Unit = ()
+    override def wrapReceive(msg: Any, receive: Receive): Unit = receive(msg)
+    override def wrapEnvelope(target: ActorRef, message: Any, sender: ActorRef): Any = message
+  }
+}
+
+class ConcreteDebuggingInterceptor(val actor: Actor) extends DebuggingInterceptor {
   import ResponseProtocol._
 
-  private def dispatcher = actor.context.actorSelection("/user/__debugger")
+  private def dispatcher = actor.context.actorSelection(s"/user/${actor.context.system.settings.config.getString("actoverse.debugger-actor-name")}")
   private def sender: ActorRef = actor.sender()
   private def self: ActorRef = actor.self
 
@@ -27,8 +39,7 @@ trait DebuggingInterceptorImpl extends DebuggingInterceptor {
 
   private var stateSnapshots = mutable.Map[Long, immutable.Map[TermSymbol, Any]]()
 
-  def beforeStart() {
-    println("beforestart")
+  def beforeStart(): Unit = {
     dispatcher ! ActorCreated(
       ActorInfo(
         getClass.getSimpleName,
@@ -150,29 +161,24 @@ trait DebuggingInterceptorImpl extends DebuggingInterceptor {
     }
   }
 
-  implicit class PimpedActorRef(target: ActorRef) {
-    def !+(message: Any)(implicit sender: ActorRef = Actor.noSender): Unit = {
-      // send to ws api
-      uidNr += 1
-      val uid = s"${self.path.name}-$uidNr"
-      dispatcher.tell(
-        SendMessage(
-          MessageBody(sender.path, target.path, message, time, uid),
-          time, sender.path
-        )
-      , Actor.noSender)
+  def wrapEnvelope(target: ActorRef, message: Any, sender: ActorRef): Any = {
+    // send to ws api
+    uidNr += 1
+    val uid = s"${self.path.name}-$uidNr"
+    dispatcher.tell(
+      SendMessage(
+        MessageBody(sender.path, target.path, message, time, uid),
+        time, sender.path
+      )
+    , Actor.noSender)
 
-      //
-      val envelope = Envelope(message, time, uid, sender)
-      target.tell(envelope, sender)
-    }
+    Envelope(message, time, uid, sender)
   }
 
   def takeStateSnapshot(serialNr: Long): immutable.Map[String, Any] = {
     val im = runtimeMirror(getClass.getClassLoader).reflect(actor)
     val targetFields = im.symbol.selfType.members
       .collect { case s: TermSymbol if s.isVar => s }
-    println(targetFields)
     stateSnapshots(serialNr) = targetFields.map { field =>
       (field, im.reflectField(field).get)
     }.toMap

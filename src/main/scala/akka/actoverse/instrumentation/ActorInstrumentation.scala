@@ -21,43 +21,47 @@ class ActorInstrumentation {
 
   @DeclareMixin("akka.actor.Actor+")
   def mixinDebuggingSupporterToActor(_actor: Actor): DebuggingInterceptor = {
-    new DebuggingInterceptorImpl {
+    /*new DebuggingInterceptor {
       override def actor: Actor = _actor
+    }*/
+    val actorPath: ActorPath = _actor.self.path
+    if(targetRegex.pattern.matcher(actorPath.toString).matches() && actorPath.name != debuggerPath) {
+      new ConcreteDebuggingInterceptor(_actor)
+    } else {
+      DebuggingInterceptor.Null
     }
   }
 
   @After("execution(* akka.actor.Actor.preStart(..)) && this(self)")
   def beforeStart(self: Actor): Unit = {
-    self match {
-      case s: DebuggingInterceptorImpl => s.beforeStart()
-      case _ => ()
-    }
+    self.asInstanceOf[DebuggingInterceptor].beforeStart()
   }
 
   @Around("execution(* akka.actor.Actor.aroundReceive(..)) && this(self) && args(receive, msg)")
   def aroundReceive(jp: ProceedingJoinPoint, self: Actor, receive: Actor.Receive, msg: Any): Unit = {
-    self match {
-      case s: DebuggingInterceptorImpl =>
-        val clos : Actor.Receive = { case m => s.wrapReceive(m, receive) }
-        val args: Array[AnyRef] = Array(self.asInstanceOf[AnyRef], clos.asInstanceOf[AnyRef], msg.asInstanceOf[AnyRef])
-        jp.proceed(args)
-      case _ =>
-        jp.proceed()
-    }
+    val clos : Actor.Receive = { case m => self.asInstanceOf[DebuggingInterceptor].wrapReceive(m, receive) }
+    val args: Array[AnyRef] = Array(self.asInstanceOf[AnyRef], clos.asInstanceOf[AnyRef], msg.asInstanceOf[AnyRef])
+    jp.proceed(args)
   }
 
-  @After("execution(* akka.actor.ScalaActorRef+.$bang(..)) && this(self) && args(message, sender)")
-  def afterBang(self: ScalaActorRef, message: Any, sender: ActorRef): Unit = {
+  @Around("execution(* akka.actor.ScalaActorRef+.$bang(..)) && this(self) && args(message, sender)")
+  def aroundBang(jp: ProceedingJoinPoint, self: ScalaActorRef, message: Any, sender: ActorRef): Unit = {
     if(targetRegex.pattern.matcher(self.path.toString).matches() &&
        sender != null && targetRegex.pattern.matcher(sender.path.toString).matches() &&
-       self.path.name != debuggerPath) {
-      message match {
-        case _: ResponseMessage => ()
-        case _: RequestMessage => ()
-        case _: DeliveryCommand => ()
-        case _ =>
-          // println(s"$sender sends $message to $self")
+       self.path.name != debuggerPath && !message.isInstanceOf[MetaMessage]) {
+      try {
+        val actor = sender.asInstanceOf[ActorRefWithCell].underlying.asInstanceOf[ActorCell].actor
+        val envelope = actor.asInstanceOf[DebuggingInterceptor].wrapEnvelope(self, message, sender)
+        val args: Array[AnyRef] = Array(self.asInstanceOf[AnyRef],
+          envelope.asInstanceOf[AnyRef], sender.asInstanceOf[AnyRef])
+        println(s"!pass $envelope")
+        jp.proceed(args)
+      } catch {
+        case e: ClassCastException =>
+          jp.proceed()
       }
+    } else {
+      jp.proceed()
     }
   }
 }

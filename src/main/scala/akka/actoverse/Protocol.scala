@@ -2,12 +2,22 @@ package akka.actoverse
 
 import net.liftweb.json._
 import net.liftweb.json.JsonDSL._
-import scala.collection.immutable.{Map, List}
-import akka.actor.ActorPath
+
+import scala.collection.immutable.{List, Map}
+import akka.actor.{ActorPath, ActorRef}
+
+trait MetaMessage
+
+sealed trait DeliveryCommand extends MetaMessage
+
+object DeliveryCommand {
+  case class NewClient(subscriber: ActorRef) extends DeliveryCommand
+  case class NewActor(ref: ActorRef) extends DeliveryCommand
+}
 
 object ResponseProtocol {
 
-  sealed trait ResponseMessage {
+  sealed trait ResponseMessage extends MetaMessage {
     val timestamp: Long
     val path: ActorPath
     def toJsonAst()(implicit formats: Formats): JsonAST.JValue
@@ -102,7 +112,7 @@ object ResponseProtocol {
 }
 
 object RequestProtocol {
-  sealed trait RequestMessage
+  trait RequestMessage extends MetaMessage
 
   case object DumpLog extends RequestMessage
   case class Rollback(time: Long) extends RequestMessage

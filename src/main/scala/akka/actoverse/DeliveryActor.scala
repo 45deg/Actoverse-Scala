@@ -15,12 +15,6 @@ import akka.http.scaladsl.model.ws.TextMessage
 
 // add a new client
 
-sealed trait DeliveryCommand
-
-object DeliveryCommand {
-  case class NewClient(subscriber: ActorRef) extends DeliveryCommand
-  case class NewActor(ref: ActorRef) extends DeliveryCommand
-}
 
 class DeliveryActor(system: ActorSystem) extends Actor {
   import akka.actoverse.ResponseProtocol._

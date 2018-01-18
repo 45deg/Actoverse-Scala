@@ -1,26 +1,46 @@
-resolvers += "Akka Snapshot Repository" at "http://repo.akka.io/snapshots/"
-
 val akkaVersion = "2.5.8"
 
 lazy val buildSettings = Seq(
-  organization := "com.example",
+  name         := "actoverse",
+  organization := "com.github.45deg",
   scalaVersion := "2.11.8",
-  version      := "0.1.0-SNAPSHOT",
-  libraryDependencies ++= Seq(
-    "com.typesafe.akka" %% "akka-actor" % akkaVersion,
-    "com.typesafe.akka" %% "akka-http" % "10.0.11",
-    "com.typesafe.akka" %% "akka-contrib" % akkaVersion,
-    "com.typesafe.akka" %% "akka-testkit" % akkaVersion % "test",
-    "org.scalatest" %% "scalatest" % "3.0.1" % "test",
-    "net.liftweb" %% "lift-json" % "2.6.2",
-    "org.scala-lang" % "scala-reflect" % scalaVersion.value
-  )
+  crossScalaVersions := Seq("2.11.8"),
+  version      := "0.2.0-SNAPSHOT"
 )
 
 lazy val actoverse = (project in file("."))
   .settings(buildSettings)
   .enablePlugins(SbtAspectj)
   .settings(
-    fork := true,
-    javaOptions ++= (aspectjWeaverOptions in Aspectj).value
+    aspectjCompileOnly in Aspectj := true,
+    products in Compile ++= (products in Aspectj).value,
+    libraryDependencies ++= Seq(
+      "com.typesafe.akka" %% "akka-actor" % akkaVersion,
+      "com.typesafe.akka" %% "akka-contrib" % akkaVersion,
+      "com.typesafe.akka" %% "akka-testkit" % akkaVersion % "test",
+      "com.typesafe.akka" %% "akka-http" % "10.0.11",
+      "org.scalatest" %% "scalatest" % "3.0.1" % "test",
+      "net.liftweb" %% "lift-json" % "2.6.2",
+      "org.scala-lang" % "scala-reflect" % scalaVersion.value
+    )
+  )
+  .aggregate(plugin)
+
+lazy val plugin = (project in file("plugin"))
+  .enablePlugins(SbtAspectj)
+  .settings(buildSettings)
+  .settings(
+    name := "actoverse-sbt",
+    sbtPlugin := true,
+    scalaVersion := "2.10.6",
+    crossScalaVersions := Seq("2.10.6"),
+    addSbtPlugin("com.lightbend.sbt" % "sbt-aspectj" % "0.11.0"),
+    // scripted-plugin
+    ScriptedPlugin.scriptedSettings,
+    scriptedBufferLog  := false,
+    scriptedLaunchOpts ++= Seq(
+      "-Dproject.version=" + version.value,
+      "-Dscala.version=" + scalaVersion.value
+    ),
+    watchSources ++= (sourceDirectory map { path => (path ** "*").get }).value
   )

@@ -3,6 +3,7 @@ val akkaVersion = "2.5.8"
 lazy val buildSettings = Seq(
   name         := "actoverse",
   organization := "com.github.45deg",
+  description  := "Actoverse API for Akka",
   scalaVersion := "2.11.8",
   crossScalaVersions := Seq("2.11.8"),
   version      := "0.2.0-SNAPSHOT"

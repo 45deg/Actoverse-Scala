@@ -8,7 +8,7 @@ class ComprehensiveSerializer extends Serializer[Any] {
    private def isComprehensiveClass(obj: Any) = {
      val cls: Class[_] = obj.getClass
      val m = ru.runtimeMirror(cls.getClassLoader) // RuntimeMirror
-     val pkgName = cls.getPackage.getName
+     val pkgName = if (cls.getPackage == null) "" else cls.getPackage.getName
      m.classSymbol(cls).isCaseClass &&
        !(pkgName.startsWith("akka") || pkgName.startsWith("net.liftweb.json")) && !isTuple(cls)
    }

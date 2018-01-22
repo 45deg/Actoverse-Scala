@@ -9,11 +9,38 @@ Note that this implmentation is too experimental and there are several limitatio
 
 *Important: After ver 0.2.0, you don't have to rewrite source codes by introducing AspectJ.*
 
+### Installation
+
 Create file `project/plugins.sbt` in your project with:
 
 ```
+resolvers += Resolver.url("45deg/sbt-plugins", url("https://dl.bintray.com/45deg/sbt-plugins/"))(Resolver.ivyStylePatterns)
 addSbtPlugin("com.github.45deg" %% "actoverse-sbt" % "0.2.0-SNAPSHOT")
 ```
+
+Then, add the line below to `build.sbt`: 
+
+```
+enablePlugins(ActoversePlugin)
+```
+
+### Configuration
+
+Add the settings to `(src/main/resources/)applications.conf` in your project with: 
+
+```
+# ActorPathes of the targets. You can use a regular expression.
+actoverse.target-actorpath = "akka://[SYSTEM NAME]/user/.+"
+# [Optional] The name of the ActorSystem for this debugger.
+actoverse.debugger-system-name = "ActoverseDebuggerSystem"
+# [Optional] The name of actors that is introduced into target ActorSystems.
+actoverse.debugger-actor-name = "__debugger"
+# Address and Port of WebSocket API Endpoint.
+actoverse.wshandler.hostname = "localhost"
+actoverse.wshandler.port = 3000
+```
+
+See also: [An Example Repository](https://github.com/45deg/Actoverse-Scala-Demos).
 
 ## How it works
 
@@ -27,7 +54,7 @@ addSbtPlugin("com.github.45deg" %% "actoverse-sbt" % "0.2.0-SNAPSHOT")
 
 ### Message Enveloping
 
-The debugger attaches an additional information (internally, called `Envelope`) to all the messages sent by actors with `!+`. It includes sender and receiver's Actor pathes, Lamport timestamps, and auto-generated UUIDs.
+The debugger attaches an additional information (internally, called `Envelope`) to all the messages sent by actors with `!`. It includes sender and receiver's Actor pathes, Lamport timestamps, and auto-generated UUIDs.
 
 On the other hand, the `DebuggingSupporter` of an receiving actor opens an envelope and delivers the original message to the actor. The idea of interception comes from [Receive Pipeline Pattern](http://doc.akka.io/docs/akka/2.4-M1/contrib/receive-pipeline.html)
 
@@ -37,7 +64,7 @@ The figure below provides an overview of processing incoming messages (envelopes
 
 ### Snapshot
 
-`DebuggingSupporter` stores the state (variables) of the actor itself every time when an actor finishes processing an incoming message, that is, finishes `receive`. Currently, you must specify the variables to be captured by adding `@State` to them.
+`DebuggingSupporter` stores the state (variables) of the actor itself every time when an actor finishes processing an incoming message, that is, finishes `receive`. Currently, all `var`s in the classes that extends `Actor` are to be captured.
 
 ### AspectJ
 

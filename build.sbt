@@ -6,13 +6,19 @@ lazy val buildSettings = Seq(
   description  := "Actoverse API for Akka",
   scalaVersion := "2.11.8",
   crossScalaVersions := Seq("2.11.8"),
-  version      := "0.2.0-SNAPSHOT"
+  version      := "0.2.0"
+)
+
+lazy val bintraySettings = Seq(
+  licenses += ("MIT", url("http://opensource.org/licenses/MIT"))
 )
 
 lazy val actoverse = (project in file("."))
   .settings(buildSettings)
+  .settings(bintraySettings)
   .enablePlugins(SbtAspectj)
   .settings(
+    bintrayRepository := "maven",
     aspectjCompileOnly in Aspectj := true,
     products in Compile ++= (products in Aspectj).value,
     libraryDependencies ++= Seq(
@@ -28,10 +34,12 @@ lazy val actoverse = (project in file("."))
   .aggregate(plugin)
 
 lazy val plugin = (project in file("plugin"))
-  .enablePlugins(SbtAspectj)
   .settings(buildSettings)
+  .settings(bintraySettings)
+  .enablePlugins(SbtAspectj)
   .settings(
     name := "actoverse-sbt",
+    bintrayRepository := "sbt-plugins",
     sbtPlugin := true,
     scalaVersion := "2.10.6",
     crossScalaVersions := Seq("2.10.6"),

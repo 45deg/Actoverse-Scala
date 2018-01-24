@@ -13,6 +13,7 @@ object ActoversePlugin extends AutoPlugin {
   override def trigger = allRequirements
 
   override lazy val projectSettings: Seq[Def.Setting[_]] =
-    (libraryDependencies += "com.github.45deg" %% "actoverse" % "0.2.0-SNAPSHOT") ++
+    (resolvers += Resolver.bintrayRepo("45deg", "maven")) ++
+    (libraryDependencies += "com.github.45deg" %% "actoverse" % "0.2.0") ++
     (fork := true) ++ (javaOptions ++= (aspectjWeaverOptions in Aspectj).value)
 }

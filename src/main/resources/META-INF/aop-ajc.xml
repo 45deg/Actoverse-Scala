@@ -1,0 +1,9 @@
+<aspectj>
+    <aspects>
+        <aspect name="akka.actoverse.instrumentation.ActorSystemInstrumentation"/>
+        <aspect name="akka.actoverse.instrumentation.ActorInstrumentation"/>
+    </aspects>
+    <weaver options="">
+        <exclude within="akka.util.ByteString"/>
+    </weaver>
+</aspectj>

@@ -1,4 +1,4 @@
-package actoverse
+package akka.actoverse
 
 /*
   Handles sending messsages to websocket clients
@@ -15,13 +15,9 @@ import akka.http.scaladsl.model.ws.TextMessage
 
 // add a new client
 
-object DeliveryCommand {
-  case class NewClient(subscriber: ActorRef)
-  case class NewActor(ref: ActorRef)
-}
 
 class DeliveryActor(system: ActorSystem) extends Actor {
-  import actoverse.ResponseProtocol._
+  import akka.actoverse.ResponseProtocol._
   import context.dispatcher
   implicit val timeout = Timeout(100 milliseconds) // Timeout: 100ms
 
@@ -37,7 +33,6 @@ class DeliveryActor(system: ActorSystem) extends Actor {
     case DeliveryCommand.NewActor(target) =>
       targets += target
     case msg: ResponseMessage => // message from actors
-      //println(msg.toJson)
       log += msg
       dispatch(msg.toJson)
     case RequestProtocol.DumpLog =>

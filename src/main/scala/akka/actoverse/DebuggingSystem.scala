@@ -1,16 +1,17 @@
-package actoverse
+package akka.actoverse
 
-import akka.actor.{ Actor, ActorSystem, Props, ActorRef}
-import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.{ Source, Flow, Keep }
-import akka.stream.scaladsl.Sink
+import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.ws.UpgradeToWebSocket
-import akka.http.scaladsl.model.ws.{ TextMessage, BinaryMessage, Message }
-import akka.http.scaladsl.model.{ HttpResponse, Uri, HttpRequest }
 import akka.http.scaladsl.model.HttpMethods._
-import com.typesafe.config.Config
-import scala.concurrent.Promise
+import akka.http.scaladsl.model.ws.{Message, TextMessage, UpgradeToWebSocket}
+import akka.http.scaladsl.model.{HttpRequest, HttpResponse, Uri}
+import akka.stream.ActorMaterializer
+import akka.stream.scaladsl.{Flow, Sink, Source}
+import com.typesafe.config.ConfigFactory
+
+object DebuggingSystem {
+  lazy val wsSystem = ActorSystem(ConfigFactory.load().getString("actoverse.debugger-system-name"))
+}
 
 class DebuggingSystem {
   private var _dispatcher: Option[ActorRef] = None
@@ -18,14 +19,14 @@ class DebuggingSystem {
 
   def dispatcher = _dispatcher.get
 
-  def introduce(system: ActorSystem) = {
+  def introduce(system: ActorSystem): Unit = {
     // Make a dependent actor system for websocket
-    implicit val wsSystem = ActorSystem()
+    implicit val wsSystem = DebuggingSystem.wsSystem
     implicit val materializer = ActorMaterializer()
     currentSystem = Some(wsSystem)
 
     // message dispatcher
-    val dispatcherRef = system.actorOf(Props(new DeliveryActor(system)), name = "__debugger")
+    lazy val dispatcherRef = system.actorOf(Props(new DeliveryActor(system)), name = system.settings.config.getString("actoverse.debugger-actor-name"))
     // outgoing stream for websocket
     val source = Source.actorRef[Message](1000, akka.stream.OverflowStrategy.fail)
                        .mapMaterializedValue(dispatcherRef ! DeliveryCommand.NewClient(_))
@@ -48,14 +49,14 @@ class DebuggingSystem {
     }
 
     // Listen
-    val hostname = system.settings.config.getString("actoverse.wshandler.hostname")
-    val port = system.settings.config.getInt("actoverse.wshandler.port")
+    val hostname = wsSystem.settings.config.getString("actoverse.wshandler.hostname")
+    val port = wsSystem.settings.config.getInt("actoverse.wshandler.port")
     val bindingFuture = Http().bindAndHandleSync(requestHandler, interface = hostname, port = port)
 
     _dispatcher = Some(dispatcherRef)
   }
 
   def terminate() = {
-    currentSystem.get.terminate
+    currentSystem.map(s => s.terminate())
   }
 }

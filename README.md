@@ -77,8 +77,4 @@ This implementation does not cover several functions of Akka or Scala, such as:
 
 - To read/write external files or networks. The debugger cannot capture these modifications and restore a previous state of them.
 - To deal with stopping and restarting actors. Because of Akka Actor's lifecycle, it is impossible to regenerate an actor with the same reference as the previous actor, which stopped manually. Therefore, restoring the system to the former condition is difficult.
-<<<<<<< HEAD
 - To variables which cannot be copied or duplicated. This framework copies and stores variables into a list. For the same reason, inconsistencies may occur when there is a reference variable of another object which can be modified from the outside of the Actor system.
-=======
-- To hold the `@State` variables which cannot be copied or duplicated. This framework copies and stores `@State` variables into the list. For the same reason, inconsistencies may occur by adding `@State` to a reference variable of another object which can be modified from the outside of the Actor system.
->>>>>>> master

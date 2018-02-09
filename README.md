@@ -1,6 +1,6 @@
 # Actoverse for Scala (Akka)
 
-Actoverse API implementation for Akka Actor Framework
+[Actoverse](https://github.com/45deg/Actoverse) API implementation for Akka Actor Framework
 
 This library extends the [Akka Actor](http://akka.io/) system to realize captureing causal relationships and reverse debugging.
 Note that this implmentation is too experimental and there are several limitations for debugging.
